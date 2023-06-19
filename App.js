@@ -1,5 +1,4 @@
 import React, {Component} from 'react';
-import {render} from 'react-dom';
 import {
   FlatList,
   View,
@@ -9,6 +8,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import axios from 'axios';
 
@@ -25,28 +25,34 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      message: 'React/Parcel Starter',
       persons: [],
       value: '',
+      loading: false,
     };
   }
   searchPostOffices = () => {
-    axios
-      .get(`https://api.postalpincode.in/postoffice/${this.state.value}`)
-      .then(res => {
-        if (res.status === 200) {
-          if (res.data[0].Status === 'Success') {
-            this.setState({persons: res.data[0].PostOffice});
-          } else if (res.data[0].Status === 'Error') {
-            alert(res.data[0].Message);
+    if (this.state.value === '') {
+      alert('Please enter city name.');
+    } else {
+      this.setState({loading: true, persons: []});
+      axios
+        .get(`https://api.postalpincode.in/postoffice/${this.state.value}`)
+        .then(res => {
+          if (res.status === 200) {
+            this.setState({loading: false});
+            if (res.data[0].Status === 'Success') {
+              this.setState({persons: res.data[0].PostOffice});
+            } else if (res.data[0].Status === 'Error') {
+              alert(res.data[0].Message);
+            }
+          } else if (res.status >= 500 || res.status === 400) {
+            alert('Something went wrong, please try agin later.');
           }
-        } else if (res.status >= 500 || res.status === 400) {
-          alert('Something went wrong, please try agin later.');
-        }
-      })
-      .catch(err => {
-        alert(err);
-      });
+        })
+        .catch(err => {
+          alert(err);
+        });
+    }
   };
 
   render() {
@@ -63,11 +69,21 @@ class App extends Component {
             <Text style={styles.text}>Search</Text>
           </TouchableOpacity>
         </View>
-        <FlatList
-          data={this.state.persons}
-          renderItem={({item}) => <Item title={item} />}
-          keyExtractor={item => item.id}
-        />
+        {this.state.loading ? (
+          <ActivityIndicator
+            size="large"
+            color="#FF8333"
+            style={{marginTop: '50%'}}
+          />
+        ) : (
+          <FlatList
+            data={this.state.persons}
+            renderItem={({item}) => <Item title={item} />}
+            keyExtractor={item => {
+              return item.id;
+            }}
+          />
+        )}
       </SafeAreaView>
     );
   }
@@ -111,7 +127,6 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   text: {
-    textAlig: 'center',
     alignItems: 'center',
     justifyContent: 'center',
     color: 'white',
